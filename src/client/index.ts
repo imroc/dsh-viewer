@@ -34,6 +34,15 @@ import { ViewerCard, type ViewerCardInjected } from './ViewerCard.tsx'
 import { en, zh, type ViewerKey } from './locales.ts'
 import { installViewerStyles } from './styles.ts'
 
+/**
+ * Shadow the harness's own `read_image` toolview.
+ *
+ * The host registers that key at the default priority 0, and 0.1.7 renders the
+ * lowest priority of a keyed cell (and refuses a second registration at an
+ * equal one), so the takeover has to sit below it.
+ */
+const READ_IMAGE_PRIORITY = -1
+
 export type { CardState } from './card-model.ts'
 export { cardModel, argumentPathOf, contentImageOf } from './card-model.ts'
 export type { ViewerCardInjected } from './ViewerCard.tsx'
@@ -192,6 +201,12 @@ export function apply(ctx: ClientContext): void {
   // One factory, two keys. The slot is session-scoped, so the framework hands
   // the factory the resolved session id and the loader closes over it — the
   // component never learns which session it belongs to.
+  //
+  // 0.1.7 renders a keyed cell from its LOWEST priority and throws when two
+  // registrations share both key and priority. The harness ships its own
+  // `read_image` toolview at the default 0, so taking that key over needs an
+  // explicitly lower one; `display_file` is this plugin's own key and stays at
+  // the default.
   const injected = (sessionId: SessionId): ViewerCardInjected => ({
     loadAttachment: attachmentId => urls.resolve(sessionId, attachmentId),
   })
@@ -200,6 +215,7 @@ export function apply(ctx: ClientContext): void {
     ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
       name: 'tool.call.toolview',
       key,
+      ...key === READ_IMAGE_TOOL ? { priority: READ_IMAGE_PRIORITY } : {},
       locale: VIEWER_NS,
       inject: injected,
     }, ViewerCard))
