@@ -10,10 +10,11 @@
 | `0.1.2-rc.1` | 是 | 对该序列实际发布的包跑 typecheck + 测试 |
 | `0.1.3-alpha.2` | 是 | 同上 |
 | `0.1.5-rc.2` | 是 | 同上，即 `next` 当前解析到的版本 |
+| `0.1.7-rc.1` | 是 | typecheck + 71 个测试；**本 fork 的适配基线** |
 
 每条序列的验证状态与依据记在 [acceptance.zh.md](acceptance.zh.md)。
 
-peer 范围是 `>=0.1.0-rc.1 <0.1.1-0 || >=0.1.1-rc.0 <0.1.2-0 || >=0.1.2-rc.0 <0.1.3-0 || >=0.1.3-rc.0 <0.1.4-0 || >=0.1.5-rc.0 <0.1.6-0`。**按证据放宽，不靠乐观**：`0.1.4` 元组不在里面，是因为上游根本没在它上面发过东西。
+peer 范围是 `>=0.1.7-rc.1 <0.2.0-0`。**本 fork 重新基线到 0.1.7**：0.1.7 删掉了消息来源里通用的 `plugin` 种类、并把 `agent/created` 改成 serial，本插件因此只声明 `0.1.7-rc.1` 起的区间（早期序列请用上游 `Crosery/dsh-viewer@0.1.1`）。**按证据放宽，不靠乐观**：`0.1.4` 元组不在里面，是因为上游根本没在它上面发过东西。
 
 一条序列只有在本插件需要的每个包都发布到它上面时才装得上，而有好几条不是。每次都是同一个形状：某个 tag 发布的 `@deepseek-ai/dsh-tools` 要求该 tag 从未发布过的 `@deepseek-ai/dsh-user-approval`，而确实存在的最近那个版本又要求第三个该 tag 同样没发的包。`0.1.2-alpha.5`、`0.1.5-alpha.1`、`0.1.5-alpha.2`、`0.1.5-rc.1` 都是这样，而且每一条都是在依赖图里完全没有本插件的情况下确认的。这是上游的状态，不是本插件的声明；定时 job 会继续如实报告。
 
@@ -38,6 +39,14 @@ hooks 与它们接线的注册完全一致，搬走的只是写法。`settingsNa
 
 - 客户端 `sessions` 服务：0.1.1 及以前在 `@deepseek-ai/dsh-client-runtime`，0.1.2 起在 `@deepseek-ai/dsh-api-session-controller`。插件以结构化类型声明自己读的那一小片（`ViewerSessionFace`、`ViewerSessions`、`ToolCallBlockLike`），不导入任何一个包的类型，因此一份构建在两边的 typecheck 都过。
 - `dsh-client-runtime` 在 `0.1.1-rc.2` 之后停止发布，这也是它不再是 devDependency 的原因。
+
+## 0.1.7 的两处 API 变化
+
+**消息来源不再有通用的 `plugin` 种类。** `MessageSourceMap` 的 `plugin: { kind: 'plugin', plugin: string }` 成员被删除，改为「每个生产者在自己的模块里声明自己的 kind，消费者对不认识的 kind 直接穿透」——上游明确写了「there is no shared catch-all `plugin` kind」。本插件改为声明并发送自己的 `dsh-viewer` kind（`src/display-file.ts` 顶部的 `declare module '@deepseek-ai/dsh-llm'`），这是合并扩展的求和类型，所以不需要上游再提供 catch-all。
+
+**`agent/created` 从 emit 变成 serial。** 0.1.7 起该边按注册顺序 `await` 每个监听器，回调签名要求返回 `Promise<undefined> | undefined`，返回 `void` 的函数过不了类型检查。`src/supersede-read-image.ts` 里显式 `return undefined`；工作本身仍然同步、不会 reject（监听器抛错会否决整个 agent 的发布，这一点 0.1.5 起就是如此）。
+
+**settings 侧无需改动。** `ctx.settings.installSection` 与 `settings.register` 在 0.1.7 双双退役，`mountSettingsSection` 的两条探测分支都不命中，于是 profile 条目成为配置的唯一来源；而 0.1.7 的设置界面本来就是从每个条目的 Config schema 自动生成的（本插件 `Config = ViewerSettingsSchema`），四个开关照样可编辑，改动由 loader 重新 apply。
 
 ## 预发布陷阱
 

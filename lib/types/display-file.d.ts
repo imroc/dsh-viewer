@@ -17,8 +17,25 @@
  */
 import type { Context } from '@deepseek-ai/cordis';
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment';
+import type { ContextFormed } from '@deepseek-ai/dsh-llm';
 import type { ToolExecution } from '@deepseek-ai/dsh-tools';
 import { type DisplayValue, type ModelImage } from './contract.ts';
+/**
+ * This plugin's own message source kind.
+ *
+ * Harness 0.1.7 removed the shared catch-all `plugin` kind from
+ * `MessageSourceMap`: every producer declares its own kind in its own module and
+ * consumers fall through the kinds they do not know. Declaring ours here is what
+ * keeps the deferred nested-dispatch context (a `run_code` image that has to
+ * reach model context explicitly) typed instead of collapsing.
+ */
+declare module '@deepseek-ai/dsh-llm' {
+    interface MessageSourceMap {
+        'dsh-viewer': {
+            kind: 'dsh-viewer';
+        } & ContextFormed;
+    }
+}
 /** Live settings and key material {@link applyDisplayTool} reads per call. */
 export interface DisplayToolOptions {
     /** Whether an image-capable route may also receive the image itself. */

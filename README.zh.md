@@ -12,6 +12,12 @@
 
 ---
 
+> **本仓库是 [Crosery/dsh-viewer](https://github.com/Crosery/dsh-viewer) 的 fork**（`imroc/dsh-viewer`），基线改到 DeepSeek Harness `0.1.7-rc.1`：上游 0.1.1 的 peer 范围封顶在 `<0.1.6-0`，在 0.1.7 上会被宿主的插件兼容闸门整包跳过。本 fork 修掉了 0.1.7 的两处 API 变化（消息来源不再有通用的 `plugin` 种类、`agent/created` 改为 serial），详见 [docs/harness-compatibility.zh.md](docs/harness-compatibility.zh.md)。安装：
+
+```bash
+pnpm add 'https://github.com/imroc/dsh-viewer/releases/latest/download/dsh-viewer.tgz'
+```
+
 ## 支持的格式：6 类 36 种扩展名
 
 | 类别 | 渲染元素 | 扩展名 |

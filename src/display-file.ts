@@ -21,7 +21,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { AttachmentError, AttachmentId } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, ContextFormed } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { GenericCallView, ToolExecution } from '@deepseek-ai/dsh-tools'
 import type { FsTarget } from '@deepseek-ai/dsh-fs'
@@ -33,8 +33,23 @@ import { assetUrlFor } from './asset-token.ts'
 import { CONVERTED_MEDIA_TYPE, convertDocument } from './convert.ts'
 import { resolveDisplayTarget } from './read-target.ts'
 
-/** Plugin name stamped on a deferred nested-dispatch context. */
-const PLUGIN = '@crosery/dsh-viewer'
+/**
+ * This plugin's own message source kind.
+ *
+ * Harness 0.1.7 removed the shared catch-all `plugin` kind from
+ * `MessageSourceMap`: every producer declares its own kind in its own module and
+ * consumers fall through the kinds they do not know. Declaring ours here is what
+ * keeps the deferred nested-dispatch context (a `run_code` image that has to
+ * reach model context explicitly) typed instead of collapsing.
+ */
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'dsh-viewer': { kind: 'dsh-viewer' } & ContextFormed
+  }
+}
+
+/** Message source kind stamped on a deferred nested-dispatch context. */
+const SOURCE_KIND = 'dsh-viewer'
 
 /** Live settings and key material {@link applyDisplayTool} reads per call. */
 export interface DisplayToolOptions {
@@ -308,7 +323,7 @@ export function applyDisplayTool(ctx: Context, options: DisplayToolOptions): () 
       if (exec.parent !== undefined && value.inContext) {
         exec.deferContext(createUserMessage({
           content: displayContent(value),
-          source: { kind: 'plugin', plugin: PLUGIN },
+          source: { kind: SOURCE_KIND },
         }))
       }
       return value

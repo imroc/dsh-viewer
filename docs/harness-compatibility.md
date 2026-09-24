@@ -10,10 +10,11 @@
 | `0.1.2-rc.1` | yes | typecheck + tests against that train's published packages |
 | `0.1.3-alpha.2` | yes | same |
 | `0.1.5-rc.2` | yes | same, on the train `next` currently resolves to |
+| `0.1.7-rc.1` | yes | typecheck + 71 tests; **this fork adaptation baseline** |
 
 Verified trains and the evidence for each are recorded in [acceptance.md](acceptance.md).
 
-The peer range is `>=0.1.0-rc.1 <0.1.1-0 || >=0.1.1-rc.0 <0.1.2-0 || >=0.1.2-rc.0 <0.1.3-0 || >=0.1.3-rc.0 <0.1.4-0 || >=0.1.5-rc.0 <0.1.6-0`. It widens on evidence, not optimism: the `0.1.4` tuple is absent because nothing has been published on it at all.
+The peer range is `>=0.1.7-rc.1 <0.2.0-0`. This fork re-baselines on 0.1.7, which removed the shared `plugin` message-source kind and made `agent/created` serial, so it declares 0.1.7 and later only (use upstream `Crosery/dsh-viewer@0.1.1` for earlier trains). It widens on evidence, not optimism: the `0.1.4` tuple is absent because nothing has been published on it at all.
 
 A train is only installable when every harness package it needs is published on it, and several are not. The pattern is the same each time: a tag ships `@deepseek-ai/dsh-tools` requiring a `@deepseek-ai/dsh-user-approval` that the tag never published, and the nearest release that does exist requires a third package that the tag also never published. `0.1.2-alpha.5`, `0.1.5-alpha.1`, `0.1.5-alpha.2` and `0.1.5-rc.1` all fail that way, and each was confirmed with no trace of this plugin in the dependency graph. That is upstream's state, not this plugin's claim; the scheduled job keeps reporting it.
 
@@ -38,6 +39,14 @@ Two more things moved in the same train, and this plugin is deliberately not pin
 
 - The client `sessions` service lived in `@deepseek-ai/dsh-client-runtime` up to 0.1.1 and in `@deepseek-ai/dsh-api-session-controller` from 0.1.2. The plugin declares the slice it reads structurally (`ViewerSessionFace`, `ViewerSessions`, `ToolCallBlockLike`) instead of importing either package's type, so one build typechecks on both.
 - `dsh-client-runtime` stopped publishing after `0.1.1-rc.2`, which is why it is no longer a devDependency.
+
+## The two 0.1.7 API changes
+
+**No shared `plugin` message-source kind.** `MessageSourceMap`'s `plugin` member is gone; each producer declares its own kind in its own module and consumers fall through the kinds they do not know. The plugin now declares and sends its own `dsh-viewer` kind (`declare module '@deepseek-ai/dsh-llm'` at the top of `src/display-file.ts`). The map stays merge-extensible, so no upstream catch-all is needed.
+
+**`agent/created` became serial.** 0.1.7 awaits every listener in registration order, so the callback must return `Promise<undefined> | undefined`; a `void` function no longer typechecks. `src/supersede-read-image.ts` returns `undefined` explicitly while staying synchronous, because a throwing listener vetoes the agent's publication.
+
+**Settings needed no change.** `ctx.settings.installSection` and `settings.register` both retired in 0.1.7, so neither probe branch in `mountSettingsSection` fires and the profile entry stays the sole source. The 0.1.7 settings UI is generated from each entry's Config schema (`Config = ViewerSettingsSchema` here), so all four switches remain editable and a change re-applies through the loader.
 
 ## The prerelease trap
 

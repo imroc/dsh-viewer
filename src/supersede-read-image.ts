@@ -75,12 +75,15 @@ export function applySupersedeReadImage(ctx: Context, enabled: () => boolean): v
 
   ctx.on('agent/created', ({ agent }) => {
     // A throwing `agent/created` listener vetoes the agent's publication
-    // entirely, so nothing here may escape.
+    // entirely, so nothing here may escape. 0.1.7 made this edge serial and
+    // awaits every listener, so the callback returns a settled promise rather
+    // than nothing — the work itself stays synchronous and cannot reject.
     try {
       apply(agent)
     } catch {
       // Never block an agent over a presentation preference.
     }
+    return undefined
   })
 
   // The tool set changed: `read_image` may have just appeared behind its

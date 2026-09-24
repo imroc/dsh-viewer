@@ -12,6 +12,12 @@
 
 ---
 
+> **This repository is a fork of [Crosery/dsh-viewer](https://github.com/Crosery/dsh-viewer)** (`imroc/dsh-viewer`), re-baselined on DeepSeek Harness `0.1.7-rc.1`: upstream 0.1.1 caps its peer range at `<0.1.6-0`, so the host's plugin compatibility gate skips the whole bundle on 0.1.7. This fork fixes the two 0.1.7 API changes (no shared `plugin` message-source kind; `agent/created` is now serial). See [docs/harness-compatibility.md](docs/harness-compatibility.md). Install:
+
+```bash
+pnpm add 'https://github.com/imroc/dsh-viewer/releases/latest/download/dsh-viewer.tgz'
+```
+
 ## What it does
 
 The harness ships `read_image`, whose job is to put a picture into **model context**. It refuses on a text-only route, it handles four raster formats, and the built-in web client draws no card for it — so the human in front of the screen sees one line of text.
