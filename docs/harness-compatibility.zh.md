@@ -10,11 +10,12 @@
 | `0.1.2-rc.1` | 是 | 对该序列实际发布的包跑 typecheck + 测试 |
 | `0.1.3-alpha.2` | 是 | 同上 |
 | `0.1.5-rc.2` | 是 | 同上，即 `next` 当前解析到的版本 |
-| `0.1.7-rc.1` | 是 | typecheck + 71 个测试；**本 fork 的适配基线** |
+| `0.1.7-rc.1` | 是 | typecheck + 71 个测试 |
+| `0.2.0-rc.2` | 是 | typecheck + 71 个测试 + invariants；**本 fork 当前基线** |
 
 每条序列的验证状态与依据记在 [acceptance.zh.md](acceptance.zh.md)。
 
-peer 范围是 `>=0.1.7-rc.1 <0.2.0-0`。**本 fork 重新基线到 0.1.7**：0.1.7 删掉了消息来源里通用的 `plugin` 种类、并把 `agent/created` 改成 serial，本插件因此只声明 `0.1.7-rc.1` 起的区间（早期序列请用上游 `Crosery/dsh-viewer@0.1.1`）。**按证据放宽，不靠乐观**：`0.1.4` 元组不在里面，是因为上游根本没在它上面发过东西。
+peer 范围是 `>=0.1.7-rc.1 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0`。**本 fork 重新基线到 0.1.7**：0.1.7 删掉了消息来源里通用的 `plugin` 种类、并把 `agent/created` 改成 serial，本插件因此只声明 `0.1.7-rc.1` 起的区间（早期序列请用上游 `Crosery/dsh-viewer@0.1.1`）。**按证据放宽，不靠乐观**：`0.1.4` 元组不在里面，是因为上游根本没在它上面发过东西；0.2.0 那条分支是**先对着 0.2.0-rc.2 实跑通过之后**才加进去的。
 
 一条序列只有在本插件需要的每个包都发布到它上面时才装得上，而有好几条不是。每次都是同一个形状：某个 tag 发布的 `@deepseek-ai/dsh-tools` 要求该 tag 从未发布过的 `@deepseek-ai/dsh-user-approval`，而确实存在的最近那个版本又要求第三个该 tag 同样没发的包。`0.1.2-alpha.5`、`0.1.5-alpha.1`、`0.1.5-alpha.2`、`0.1.5-rc.1` 都是这样，而且每一条都是在依赖图里完全没有本插件的情况下确认的。这是上游的状态，不是本插件的声明；定时 job 会继续如实报告。
 
@@ -47,6 +48,12 @@ hooks 与它们接线的注册完全一致，搬走的只是写法。`settingsNa
 **`agent/created` 从 emit 变成 serial。** 0.1.7 起该边按注册顺序 `await` 每个监听器，回调签名要求返回 `Promise<undefined> | undefined`，返回 `void` 的函数过不了类型检查。`src/supersede-read-image.ts` 里显式 `return undefined`；工作本身仍然同步、不会 reject（监听器抛错会否决整个 agent 的发布，这一点 0.1.5 起就是如此）。
 
 **settings 侧无需改动。** `ctx.settings.installSection` 与 `settings.register` 在 0.1.7 双双退役，`mountSettingsSection` 的两条探测分支都不命中，于是 profile 条目成为配置的唯一来源；而 0.1.7 的设置界面本来就是从每个条目的 Config schema 自动生成的（本插件 `Config = ViewerSettingsSchema`），四个开关照样可编辑，改动由 loader 重新 apply。
+
+## 0.2.0 的变化
+
+**本插件无需改代码即可上去。** `0.1.7-rc.2 → 0.2.0-rc.2` 区间内上游没有改名或删除任何包（只新增了 4 个），本插件用到的服务与类型都还在。唯一的适配是把 peer 上界从「0.2.0 之前」放宽到 0.2.x：0.2.0 起 harness 会拿运行版本去比 `peerDependencies` 里每个 `@deepseek-ai/dsh*` 的范围，**范围不含运行版本的 bundle 会被静默跳过**（stderr 一行 `skipping profile bundle`，不报错、插件直接消失），所以不放开上界等于插件在 0.2.0 上不加载。
+
+改法两处：peer 加上 `|| >=0.2.0-rc.1 <0.3.0-0` 分支，`devDependencies` 基线移到 `^0.2.0-rc.1`。验证是在 0.2.0-rc.2 上实跑的：`npm install`、`npm run typecheck`、`npm test`（71 通过 / 2 跳过）、`npm run check` 全绿。
 
 ## 预发布陷阱
 

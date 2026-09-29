@@ -10,11 +10,12 @@
 | `0.1.2-rc.1` | yes | typecheck + tests against that train's published packages |
 | `0.1.3-alpha.2` | yes | same |
 | `0.1.5-rc.2` | yes | same, on the train `next` currently resolves to |
-| `0.1.7-rc.1` | yes | typecheck + 71 tests; **this fork adaptation baseline** |
+| `0.1.7-rc.1` | yes | typecheck + 71 tests |
+| `0.2.0-rc.2` | yes | typecheck + 71 tests + invariants; **this fork's current baseline** |
 
 Verified trains and the evidence for each are recorded in [acceptance.md](acceptance.md).
 
-The peer range is `>=0.1.7-rc.1 <0.2.0-0`. This fork re-baselines on 0.1.7, which removed the shared `plugin` message-source kind and made `agent/created` serial, so it declares 0.1.7 and later only (use upstream `Crosery/dsh-viewer@0.1.1` for earlier trains). It widens on evidence, not optimism: the `0.1.4` tuple is absent because nothing has been published on it at all.
+The peer range is `>=0.1.7-rc.1 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0`. This fork re-baselines on 0.1.7, which removed the shared `plugin` message-source kind and made `agent/created` serial, so it declares 0.1.7 and later only (use upstream `Crosery/dsh-viewer@0.1.1` for earlier trains). It widens on evidence, not optimism: the `0.1.4` tuple is absent because nothing has been published on it at all, and the 0.2.0 branch was added **only after typecheck and tests actually passed on 0.2.0-rc.2**.
 
 A train is only installable when every harness package it needs is published on it, and several are not. The pattern is the same each time: a tag ships `@deepseek-ai/dsh-tools` requiring a `@deepseek-ai/dsh-user-approval` that the tag never published, and the nearest release that does exist requires a third package that the tag also never published. `0.1.2-alpha.5`, `0.1.5-alpha.1`, `0.1.5-alpha.2` and `0.1.5-rc.1` all fail that way, and each was confirmed with no trace of this plugin in the dependency graph. That is upstream's state, not this plugin's claim; the scheduled job keeps reporting it.
 
@@ -47,6 +48,12 @@ Two more things moved in the same train, and this plugin is deliberately not pin
 **`agent/created` became serial.** 0.1.7 awaits every listener in registration order, so the callback must return `Promise<undefined> | undefined`; a `void` function no longer typechecks. `src/supersede-read-image.ts` returns `undefined` explicitly while staying synchronous, because a throwing listener vetoes the agent's publication.
 
 **Settings needed no change.** `ctx.settings.installSection` and `settings.register` both retired in 0.1.7, so neither probe branch in `mountSettingsSection` fires and the profile entry stays the sole source. The 0.1.7 settings UI is generated from each entry's Config schema (`Config = ViewerSettingsSchema` here), so all four switches remain editable and a change re-applies through the loader.
+
+## What 0.2.0 changed
+
+**Nothing in this plugin's code had to change.** Across `0.1.7-rc.2 → 0.2.0-rc.2` upstream renamed and removed no package at all (it only added four), and every service and type this plugin uses is still there. The only adaptation is widening the peer ceiling from "before 0.2.0" to 0.2.x: from 0.2.0 on, the harness checks the running version against every `@deepseek-ai/dsh*` range in `peerDependencies`, and **a bundle whose range excludes the running version is silently skipped** (one `skipping profile bundle` line on stderr, no error, the plugin simply vanishes). Leaving the ceiling in place is therefore the same as not loading on 0.2.0.
+
+Two changes: the peer range gains the `|| >=0.2.0-rc.1 <0.3.0-0` branch, and `devDependencies` moves to the `^0.2.0-rc.1` baseline. Verified by running against 0.2.0-rc.2: `npm install`, `npm run typecheck`, `npm test` (71 passed / 2 skipped) and `npm run check` are all green.
 
 ## The prerelease trap
 

@@ -15,13 +15,14 @@ A train counts as **supported** only when every harness package this plugin need
 | `0.1.3-alpha.2` | supported | typecheck + 71 tests |
 | `0.1.5-rc.2` | supported | typecheck + 71 tests |
 | `0.1.7-rc.1` | supported | typecheck + 71 tests |
+| `0.2.0-rc.2` | supported | typecheck + 71 tests + invariants; **this fork's current baseline** |
 | `0.1.2-alpha.5` | incoherent | `dsh-tools` wants `dsh-user-approval@^0.1.2-alpha.5`; only `0.1.2-rc.1` exists, and that one wants `dsh-agent@^0.1.2-rc.1` |
 | `0.1.5-alpha.1` / `.2` | incoherent | `dsh-tools` wants `dsh-user-approval@^0.1.5-alpha.x`, never published on those tags |
 | `0.1.5-rc.1` | incoherent | `dsh-tools` wants `dsh-user-approval@^0.1.5-rc.1`; only `0.1.5-rc.2` exists, and that one wants `dsh-agent@^0.1.5-rc.2` |
 
 The incoherent rows were confirmed **without this plugin in the graph at all**: a package.json naming only harness packages fails to install on those tags. They are upstream publication gaps, not a promise this plugin failed to keep.
 
-The peer range is `>=0.1.7-rc.1 <0.2.0-0`, which admits every supported train and no incoherent one.
+The peer range is `>=0.1.7-rc.1 <0.2.0-0 || >=0.2.0-rc.1 <0.3.0-0`, which admits every supported train and no incoherent one. The 0.2.0 branch carries its own prerelease comparator (`>=0.2.0-rc.1`); without one, node-semver shuts out every prerelease of that tuple.
 
 ## Cards, on a live host
 
